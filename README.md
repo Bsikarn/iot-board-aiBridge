@@ -1,4 +1,4 @@
-# Embedded AI Visual Problem Solver
+# 🧠 Embedded AI Hardware for Visual Problem Solving
 
 A personal project for Sikarn Pattarasirimongkol, a Full-stack Developer focusing on Data Engineering and Software Engineering. An embedded hardware application built on Raspberry Pi with an E-Ink display that captures visual problems via camera and solves them using cloud AI services. Web coding: https://github.com/Bsikarn/iot-web-aiBridge
 
@@ -23,7 +23,7 @@ A personal project for Sikarn Pattarasirimongkol, a Full-stack Developer focusin
 ### Cloud & Backend Integration
 - Vercel API Endpoints (`/api/ask`, `/api/settings`, `/api/wifi-settings`)
 
-## Active Features
+## ⚡ Active Features
 
 - **Visual Problem Capturing** — Captures images of handwritten or printed problem statements using Raspberry Pi camera tools.
 - **AI Solver Integration** — Sends captured images along with prompt slots, AI model selections, and knowledge base configurations to cloud API endpoints.
@@ -65,7 +65,7 @@ ordinary/
 └── settings_cache.json   # ⚠️ Auto-generated cache file for settings mappings
 ```
 
-## Environment Variables
+## 🔐 Environment Variables
 
 ```env
 # Hardcoded in network_mod.py (or configured via environment)
