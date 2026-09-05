@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-preset="neon">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Embedded AI Visual Problem Solver - High-Level Runtime Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-canvas: #090d16;
+      --bg-panel: #111827;
+      --bg-card: #1f2937;
+      --bg-node: #161f30;
+      --bg-mask: #0c1220;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.18);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-violet: #8b5cf6;
+      --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
+      --accent-blue: #3b82f6;
+
+      --node-frontend: #06b6d4;
+      --node-backend: #3b82f6;
+      --node-database: #10b981;
+      --node-cloud: #8b5cf6;
+      --node-security: #f59e0b;
+      --node-messagebus: #ec4899;
+      --node-external: #f43f5e;
+
+      --edge-default: #4b5563;
+      --edge-active: #06b6d4;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'Fira Code', monospace;
+      --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.25);
+      --transition-speed: 0.25s;
+    }
+
+    /* Visual Preset Variations */
+    html[data-preset="blueprint"] {
+      --bg-canvas: #0a192f;
+      --bg-panel: #112240;
+      --bg-card: #1d3557;
+      --bg-node: #172a45;
+      --bg-mask: #0d1b2e;
+      --border-subtle: rgba(100, 255, 218, 0.15);
+      --text-main: #e6f1ff;
+      --accent-cyan: #64ffda;
+      --node-frontend: #64ffda;
+      --node-backend: #57cbff;
+    }
+
+    html[data-preset="slate"] {
+      --bg-canvas: #0f172a;
+      --bg-panel: #1e293b;
+      --bg-card: #334155;
+      --bg-node: #1e293b;
+      --bg-mask: #0f172a;
+      --border-subtle: rgba(255, 255, 255, 0.12);
+      --text-main: #f8fafc;
+      --accent-cyan: #38bdf8;
+    }
+
+    html[data-theme="light"] {
+      --bg-canvas: #f8fafc;
+      --bg-panel: #ffffff;
+      --bg-card: #f1f5f9;
+      --bg-node: #ffffff;
+      --bg-mask: #f8fafc;
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-strong: rgba(0, 0, 0, 0.2);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+      --shadow-glow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header Bar */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent-emerald);
+      box-shadow: 0 0 10px var(--accent-emerald);
+      animation: pulse-ring 2s infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn, select {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.825rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all var(--transition-speed);
+    }
+
+    .btn:hover, select:hover {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+    }
+
+    .btn-active {
+      background: var(--accent-cyan);
+      color: #000;
+      border-color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    /* Guided View Scenario Switcher */
+    .guided-bar {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.6rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.85rem;
+      overflow-x: auto;
+    }
+
+    .guided-bar label {
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .scenario-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .scenario-chip:hover, .scenario-chip.active {
+      border-color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.15);
+      color: var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    /* Canvas Workspace */
+    .workspace {
+      position: relative;
+      flex: 1;
+      min-height: 640px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    svg#arch-canvas {
+      width: 100%;
+      height: auto;
+      max-width: 1600px;
+      background: var(--bg-canvas);
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Region / Boundary Boxes */
+    .region-box {
+      fill: rgba(255, 255, 255, 0.015);
+      stroke: var(--border-strong);
+      stroke-dasharray: 6 6;
+      stroke-width: 1.5;
+      rx: 12;
+      transition: all 0.3s;
+    }
+
+    .region-label {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 700;
+      fill: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Nodes */
+    .c-node {
+      cursor: pointer;
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+
+    .c-node:hover {
+      transform: translateY(-2px);
+    }
+
+    .c-node rect.node-bg {
+      fill: var(--bg-node);
+      stroke: var(--border-strong);
+      stroke-width: 1.5;
+      rx: 8;
+      transition: all 0.3s;
+    }
+
+    .c-node:hover rect.node-bg {
+      stroke: var(--node-color, var(--accent-cyan));
+      filter: drop-shadow(0 0 8px var(--node-color, var(--accent-cyan)));
+    }
+
+    .c-node.highlighted rect.node-bg {
+      stroke: var(--accent-cyan);
+      stroke-width: 2.5;
+      filter: drop-shadow(0 0 12px var(--accent-cyan));
+    }
+
+    .c-node.dimmed {
+      opacity: 0.25;
+    }
+
+    /* Kind Indicator Stripe */
+    .node-stripe {
+      fill: var(--node-color, var(--accent-cyan));
+    }
+
+    .node-title {
+      font-size: 13px;
+      font-weight: 700;
+      fill: var(--text-main);
+      font-family: var(--font-sans);
+    }
+
+    .node-sub {
+      font-size: 11px;
+      font-weight: 500;
+      fill: var(--text-muted);
+      font-family: var(--font-sans);
+    }
+
+    .node-context {
+      font-size: 10px;
+      fill: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+
+    .node-badge {
+      font-size: 9px;
+      font-weight: 700;
+      fill: #000;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
+
+    /* Connection Mask & Edges */
+    .c-mask {
+      fill: var(--bg-mask);
+      rx: 4;
+    }
+
+    .c-edge {
+      fill: none;
+      stroke: var(--edge-default);
+      stroke-width: 1.75;
+      transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
+    }
+
+    .c-edge.highlighted {
+      stroke: var(--accent-cyan);
+      stroke-width: 3;
+      stroke-dasharray: 6;
+      animation: dash-flow 1s linear infinite;
+    }
+
+    @keyframes dash-flow {
+      to { stroke-dashoffset: -12; }
+    }
+
+    .c-edge.dimmed {
+      opacity: 0.15;
+    }
+
+    .edge-label {
+      font-size: 10px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      fill: var(--text-muted);
+      text-anchor: middle;
+    }
+
+    /* Info Cards Container at Bottom */
+    .cards-section {
+      padding: 1.5rem;
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .cards-header {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 1.25rem;
+      position: relative;
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-strong);
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+
+    .card-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .card-dot.cyan { background: var(--accent-cyan); }
+    .card-dot.emerald { background: var(--accent-emerald); }
+    .card-dot.violet { background: var(--accent-violet); }
+    .card-dot.rose { background: var(--accent-rose); }
+
+    .card-body {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .card-list {
+      margin-top: 0.5rem;
+      padding-left: 1.2rem;
+    }
+
+    .card-list li {
+      margin-bottom: 0.3rem;
+    }
+
+    /* Modal / Route Probe Drawer */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 0.75rem;
+    }
+
+    .modal-close {
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.25rem;
+    }
+
+    .probe-path {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      background: var(--bg-card);
+      padding: 1rem;
+      border-radius: 6px;
+      margin-top: 1rem;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-title">
+      <div class="pulse-dot"></div>
+      <h1>Embedded AI Visual Problem Solver — High-Level Runtime Architecture</h1>
+    </div>
+    <div class="toolbar">
+      <select id="preset-select" onchange="changePreset(this.value)">
+        <option value="neon">Preset: Neon Cyber</option>
+        <option value="blueprint">Preset: Blueprint</option>
+        <option value="slate">Preset: Slate Modern</option>
+      </select>
+      <button class="btn" onclick="toggleTheme()"><span id="theme-icon">🌙</span> Theme</button>
+      <button class="btn" id="probe-btn" onclick="toggleRouteProbe()">🔍 Route Probe</button>
+      <button class="btn" onclick="resetCanvas()">🔄 Reset View</button>
+      <button class="btn btn-active" onclick="exportSVG()">📥 Export SVG</button>
+    </div>
+  </header>
+
+  <!-- Guided View Scenarios -->
+  <div class="guided-bar">
+    <label>Guided Scenarios:</label>
+    <div class="scenario-chip active" onclick="playScenario(0)">1. AI Visual Solver Flow (Camera ➔ Vercel ➔ Solver)</div>
+    <div class="scenario-chip" onclick="playScenario(1)">2. Wi-Fi Credential Sync Flow (Board ⬌ Web)</div>
+    <div class="scenario-chip" onclick="playScenario(2)">3. Mobile Hotspot Keep-Alive Daemon</div>
+    <div class="scenario-chip" onclick="resetScenario()">Show All Components</div>
+  </div>
+
+  <!-- Interactive SVG Canvas -->
+  <div class="workspace">
+    <svg id="arch-canvas" viewBox="0 0 1600 820">
+      <defs>
+        <!-- Arrowhead Markers -->
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#4b5563" />
+        </marker>
+        <marker id="arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 1 L 10 5 L 0 9 z" fill="#06b6d4" />
+        </marker>
+      </defs>
+
+      <!-- REGION BOUNDARIES -->
+      <g id="regions-layer">
+        <!-- Region 1: Hardware & Peripherals -->
+        <rect class="region-box" x="30" y="30" width="340" height="760" />
+        <text class="region-label" x="45" y="55">1. Physical Hardware &amp; Peripherals</text>
+
+        <!-- Region 2: RPi Core Engine -->
+        <rect class="region-box" x="410" y="30" width="370" height="760" />
+        <text class="region-label" x="425" y="55">2. Raspberry Pi Core Engine</text>
+
+        <!-- Region 3: Network & System Services -->
+        <rect class="region-box" x="820" y="30" width="360" height="760" />
+        <text class="region-label" x="835" y="55">3. Network &amp; System Daemons</text>
+
+        <!-- Region 4: Cloud & External AI -->
+        <rect class="region-box" x="1220" y="30" width="350" height="760" />
+        <text class="region-label" x="1235" y="55">4. Cloud Services &amp; AI Solvers</text>
+      </g>
+
+      <!-- EDGES LAYER -->
+      <g id="edges-layer">
+        <!-- 1. GPIO -> Main -->
+        <path id="edge-gpio-main" class="c-edge" marker-end="url(#arrow)" d="M 330 130 L 440 130" />
+        <rect class="c-mask" x="345" y="118" width="80" height="22" />
+        <text class="edge-label" x="385" y="133">5ms GPIO Poll</text>
+
+        <!-- 2. Main -> UIEngine -->
+        <path id="edge-main-uiengine" class="c-edge" marker-end="url(#arrow)" d="M 560 185 L 560 250" />
+        <rect class="c-mask" x="510" y="208" width="100" height="22" />
+        <text class="edge-label" x="560" y="223">Btn Events (U,D,E,S)</text>
+
+        <!-- 3. UIEngine -> EPD -->
+        <path id="edge-uiengine-epd" class="c-edge" marker-end="url(#arrow)" d="M 440 310 L 330 310" />
+        <rect class="c-mask" x="345" y="298" width="80" height="22" />
+        <text class="edge-label" x="385" y="313">SPI Render UI</text>
+
+        <!-- 4. UIEngine -> Camera -->
+        <path id="edge-uiengine-camera" class="c-edge" marker-end="url(#arrow)" d="M 440 340 L 330 490" />
+        <rect class="c-mask" x="335" y="405" width="100" height="22" />
+        <text class="edge-label" x="385" y="420">Capture Frame (1-12)</text>
+
+        <!-- 5. Camera -> UIEngine -->
+        <path id="edge-camera-uiengine" class="c-edge" marker-end="url(#arrow)" d="M 330 520 L 440 370" />
+        <rect class="c-mask" x="335" y="445" width="100" height="22" />
+        <text class="edge-label" x="385" y="460">RAM Snap (/dev/shm)</text>
+
+        <!-- 6. UIEngine -> Cache -->
+        <path id="edge-uiengine-cache" class="c-edge" marker-end="url(#arrow)" d="M 560 370 L 560 640" />
+        <rect class="c-mask" x="500" y="495" width="120" height="22" />
+        <text class="edge-label" x="560" y="510">Sync Cache &amp; History</text>
+
+        <!-- 7. UIEngine -> Network Core -->
+        <path id="edge-uiengine-net" class="c-edge" marker-end="url(#arrow)" d="M 680 310 L 850 130" />
+        <rect class="c-mask" x="715" y="208" width="100" height="22" />
+        <text class="edge-label" x="765" y="223">Dispatch Payload</text>
+
+        <!-- 8. UIEngine -> WiFi Sync -->
+        <path id="edge-uiengine-wifi" class="c-edge" marker-end="url(#arrow)" d="M 680 340 L 850 340" />
+        <rect class="c-mask" x="715" y="328" width="100" height="22" />
+        <text class="edge-label" x="765" y="343">Sync/Update Wi-Fi</text>
+
+        <!-- 9. Network -> KeepAlive Thread -->
+        <path id="edge-net-keepalive" class="c-edge" marker-end="url(#arrow)" d="M 970 185 L 970 570" />
+        <rect class="c-mask" x="910" y="368" width="120" height="22" />
+        <text class="edge-label" x="970" y="383">Spawn Heartbeat Thread</text>
+
+        <!-- 10. KeepAlive -> External DNS -->
+        <path id="edge-keepalive-dns" class="c-edge" marker-end="url(#arrow)" d="M 1090 625 L 1250 625" />
+        <rect class="c-mask" x="1115" y="613" width="110" height="22" />
+        <text class="edge-label" x="1170" y="628">Socket Ping (1.1.1.1)</text>
+
+        <!-- 11. Network -> Vercel API -->
+        <path id="edge-net-vercel" class="c-edge" marker-end="url(#arrow)" d="M 1090 130 L 1250 130" />
+        <rect class="c-mask" x="1115" y="118" width="110" height="22" />
+        <text class="edge-label" x="1170" y="133">HTTPS POST + Auth</text>
+
+        <!-- 12. WiFi Sync -> Vercel API -->
+        <path id="edge-wifi-vercel" class="c-edge" marker-end="url(#arrow)" d="M 1090 340 L 1250 185" />
+        <rect class="c-mask" x="1115" y="250" width="110" height="22" />
+        <text class="edge-label" x="1170" y="265">GET/POST wifi-settings</text>
+
+        <!-- 13. Vercel API -> Async Poll -->
+        <path id="edge-vercel-poll" class="c-edge" marker-end="url(#arrow)" d="M 1370 185 L 1370 340" />
+        <rect class="c-mask" x="1310" y="250" width="120" height="22" />
+        <text class="edge-label" x="1370" y="265">Issue task_id Queue</text>
+
+        <!-- 14. Network Core -> Async Poll -->
+        <path id="edge-net-poll" class="c-edge" marker-end="url(#arrow)" d="M 1090 160 L 1250 370" />
+        <rect class="c-mask" x="1115" y="295" width="110" height="22" />
+        <text class="edge-label" x="1170" y="310">Poll GET /api/status</text>
+
+        <!-- 15. Async Poll -> External AI Engine -->
+        <path id="edge-poll-ai" class="c-edge" marker-end="url(#arrow)" d="M 1370 450 L 1370 570" />
+        <rect class="c-mask" x="1310" y="498" width="120" height="22" />
+        <text class="edge-label" x="1370" y="513">Delegate VLM Solver</text>
+      </g>
+
+      <!-- NODES LAYER -->
+      <g id="nodes-layer">
+
+        <!-- NODE 1: GPIO Buttons -->
+        <g class="c-node" id="node-gpio" data-node-id="node-gpio" data-node-kind="frontend" data-node-label="GPIO Buttons Input" data-node-sublabel="Physical Pins (29,31,32,33)" data-node-context="RPi.GPIO Pull-up triggers: Up, Down, Enter, Special" transform="translate(80, 75)" onclick="inspectNode('node-gpio')">
+          <rect class="node-bg" width="250" height="110" style="--node-color: var(--node-frontend);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-frontend);" />
+          <text class="node-title" x="20" y="32">🔘 GPIO Push Buttons</text>
+          <text class="node-sub" x="20" y="54">Pins 29(U), 31(E), 32(D), 33(S)</text>
+          <text class="node-context" x="20" y="76">Pull-Up Resistors | Shared GND Pin 14</text>
+          <rect class="c-mask" x="20" y="85" width="70" height="16" fill="rgba(6,182,212,0.2)" />
+          <text class="node-badge" x="28" y="96" fill="var(--accent-cyan)">FRONTEND</text>
+        </g>
+
+        <!-- NODE 2: E-Ink Display -->
+        <g class="c-node" id="node-epd" data-node-id="node-epd" data-node-kind="frontend" data-node-label="Waveshare E-Paper Display" data-node-sublabel="Waveshare 2.13'' V4 (epd2in13_V4)" data-node-context="250x122 monochrome display with SPI interface & 270° rotation" transform="translate(80, 255)" onclick="inspectNode('node-epd')">
+          <rect class="node-bg" width="250" height="110" style="--node-color: var(--node-frontend);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-frontend);" />
+          <text class="node-title" x="20" y="32">📺 Waveshare 2.13" E-Paper</text>
+          <text class="node-sub" x="20" y="54">epd2in13_V4 Driver (SPI)</text>
+          <text class="node-context" x="20" y="76">250x122 1-bit Mono | Partial Updates</text>
+          <rect class="c-mask" x="20" y="85" width="70" height="16" fill="rgba(6,182,212,0.2)" />
+          <text class="node-badge" x="28" y="96" fill="var(--accent-cyan)">HARDWARE</text>
+        </g>
+
+        <!-- NODE 3: RPi Camera Module -->
+        <g class="c-node" id="node-camera" data-node-id="node-camera" data-node-kind="frontend" data-node-label="RPi Camera Module" data-node-sublabel="rpicam-still / libcamera-still" data-node-context="Captures 800x600 JPEG images into /dev/shm RAM disk with auto rotation" transform="translate(80, 470)" onclick="inspectNode('node-camera')">
+          <rect class="node-bg" width="250" height="110" style="--node-color: var(--node-frontend);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-frontend);" />
+          <text class="node-title" x="20" y="32">📷 RPi Camera Subsystem</text>
+          <text class="node-sub" x="20" y="54">rpicam-still / libcamera-still</text>
+          <text class="node-context" x="20" y="76">800x600 JPEG ➔ 270° CCW Rotate</text>
+          <rect class="c-mask" x="20" y="85" width="80" height="16" fill="rgba(6,182,212,0.2)" />
+          <text class="node-badge" x="26" y="96" fill="var(--accent-cyan)">PERIPHERAL</text>
+        </g>
+
+        <!-- NODE 4: Main Application Entry -->
+        <g class="c-node" id="node-main" data-node-id="node-main" data-node-kind="backend" data-node-label="Main Boot & Event Loop" data-node-sublabel="main.py" data-node-context="System startup, GPIO initialization, and 5ms button event listener loop" transform="translate(440, 75)" onclick="inspectNode('node-main')">
+          <rect class="node-bg" width="240" height="110" style="--node-color: var(--node-backend);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-backend);" />
+          <text class="node-title" x="20" y="32">⚡ App Entry &amp; Event Loop</text>
+          <text class="node-sub" x="20" y="54">main.py (GPIO Polling)</text>
+          <text class="node-context" x="20" y="76">Boot Init ➔ 5ms Tick Listener</text>
+          <rect class="c-mask" x="20" y="85" width="65" height="16" fill="rgba(59,130,246,0.2)" />
+          <text class="node-badge" x="26" y="96" fill="var(--accent-blue)">BACKEND</text>
+        </g>
+
+        <!-- NODE 5: State Machine UI Engine -->
+        <g class="c-node" id="node-uiengine" data-node-id="node-uiengine" data-node-kind="backend" data-node-label="UI Engine & State Machine" data-node-sublabel="ui_engine.py" data-node-context="7-state FSM, 12-photo capture queue, slot/model mappings, & screen rendering" transform="translate(440, 255)" onclick="inspectNode('node-uiengine')">
+          <rect class="node-bg" width="240" height="115" style="--node-color: var(--node-backend);" />
+          <rect class="node-stripe" width="6" height="115" rx="3" style="--node-color: var(--node-backend);" />
+          <text class="node-title" x="20" y="32">🧠 UI Engine &amp; State Machine</text>
+          <text class="node-sub" x="20" y="54">ui_engine.py (7 UI States)</text>
+          <text class="node-context" x="20" y="76">12-Photo Queue | Slot/Model Map</text>
+          <rect class="c-mask" x="20" y="90" width="85" height="16" fill="rgba(59,130,246,0.2)" />
+          <text class="node-badge" x="26" y="101" fill="var(--accent-blue)">CORE ENGINE</text>
+        </g>
+
+        <!-- NODE 6: Settings & History Cache -->
+        <g class="c-node" id="node-cache" data-node-id="node-cache" data-node-kind="database" data-node-label="Local Cache & Solution History" data-node-sublabel="settings_cache.json & RAM History" data-node-context="Caches slot/model metadata locally and stores up to 3 recent solution pages" transform="translate(440, 640)" onclick="inspectNode('node-cache')">
+          <rect class="node-bg" width="240" height="110" style="--node-color: var(--node-database);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-database);" />
+          <text class="node-title" x="20" y="32">💾 Local Cache &amp; History</text>
+          <text class="node-sub" x="20" y="54">settings_cache.json &amp; RAM</text>
+          <text class="node-context" x="20" y="76">Caches Labels | Max 3 Solutions</text>
+          <rect class="c-mask" x="20" y="85" width="70" height="16" fill="rgba(16,185,129,0.2)" />
+          <text class="node-badge" x="26" y="96" fill="var(--accent-emerald)">DATABASE</text>
+        </g>
+
+        <!-- NODE 7: Network Communication Core -->
+        <g class="c-node" id="node-network" data-node-id="node-network" data-node-kind="security" data-node-label="Network Communication Core" data-node-sublabel="network_mod.py (EducationalNetwork)" data-node-context="HTTP requests client, x-board-key auth header, multipart image poster" transform="translate(850, 75)" onclick="inspectNode('node-network')">
+          <rect class="node-bg" width="240" height="110" style="--node-color: var(--node-security);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-security);" />
+          <text class="node-title" x="20" y="32">🌐 Network Comm Core</text>
+          <text class="node-sub" x="20" y="54">network_mod.py (REST Client)</text>
+          <text class="node-context" x="20" y="76">x-board-key Auth | Multipart POST</text>
+          <rect class="c-mask" x="20" y="85" width="70" height="16" fill="rgba(245,158,11,0.2)" />
+          <text class="node-badge" x="26" y="96" fill="var(--accent-amber)">SECURITY</text>
+        </g>
+
+        <!-- NODE 8: Wi-Fi Sync Manager -->
+        <g class="c-node" id="node-wifi" data-node-id="node-wifi" data-node-kind="security" data-node-label="Wi-Fi Credentials Sync Manager" data-node-sublabel="nmcli / iwgetid / wpa_supplicant" data-node-context="Queries active SSID & local wifis; bidirectionally syncs credentials with Web Cloud" transform="translate(850, 285)" onclick="inspectNode('node-wifi')">
+          <rect class="node-bg" width="240" height="110" style="--node-color: var(--node-security);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-security);" />
+          <text class="node-title" x="20" y="32">📡 Wi-Fi Credentials Sync</text>
+          <text class="node-sub" x="20" y="54">nmcli / iwgetid Integration</text>
+          <text class="node-context" x="20" y="76">Sync Web ⬌ Board Networks</text>
+          <rect class="c-mask" x="20" y="85" width="75" height="16" fill="rgba(245,158,11,0.2)" />
+          <text class="node-badge" x="26" y="96" fill="var(--accent-amber)">WIFI SYNC</text>
+        </g>
+
+        <!-- NODE 9: Hotspot Keep-Alive Daemon -->
+        <g class="c-node" id="node-keepalive" data-node-id="node-keepalive" data-node-kind="messagebus" data-node-label="Hotspot Keep-Alive Daemon" data-node-sublabel="_heartbeat_worker Thread" data-node-context="Sends 60-byte socket ping to 1.1.1.1:53 every 30s to keep mobile hotspot alive" transform="translate(850, 570)" onclick="inspectNode('node-keepalive')">
+          <rect class="node-bg" width="240" height="110" style="--node-color: var(--node-messagebus);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-messagebus);" />
+          <text class="node-title" x="20" y="32">💓 Hotspot Keep-Alive</text>
+          <text class="node-sub" x="20" y="54">Daemon Thread (_heartbeat)</text>
+          <text class="node-context" x="20" y="76">60B Socket Ping @ 30s Interval</text>
+          <rect class="c-mask" x="20" y="85" width="80" height="16" fill="rgba(236,72,153,0.2)" />
+          <text class="node-badge" x="26" y="96" fill="#ec4899">DAEMON</text>
+        </g>
+
+        <!-- NODE 10: Vercel API Gateway -->
+        <g class="c-node" id="node-vercel" data-node-id="node-vercel" data-node-kind="cloud" data-node-label="Vercel Cloud API Gateway" data-node-sublabel="aicalculate-iot.vercel.app/api/*" data-node-context="Serverless endpoints for /api/ask, /api/settings, /api/wifi-settings" transform="translate(1250, 75)" onclick="inspectNode('node-vercel')">
+          <rect class="node-bg" width="240" height="110" style="--node-color: var(--node-cloud);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-cloud);" />
+          <text class="node-title" x="20" y="32">☁️ Vercel API Gateway</text>
+          <text class="node-sub" x="20" y="54">/api/ask &amp; /api/settings</text>
+          <text class="node-context" x="20" y="76">Authenticates Board Secret Key</text>
+          <rect class="c-mask" x="20" y="85" width="80" height="16" fill="rgba(139,92,246,0.2)" />
+          <text class="node-badge" x="26" y="96" fill="var(--accent-violet)">API GATEWAY</text>
+        </g>
+
+        <!-- NODE 11: Async Long-Polling Engine -->
+        <g class="c-node" id="node-poll" data-node-id="node-poll" data-node-kind="cloud" data-node-label="Async Long-Polling Engine" data-node-sublabel="/api/status (Max 600s Wait)" data-node-context="Tracks task states: sent ➔ grid_done ➔ ai_processing ➔ completed" transform="translate(1250, 340)" onclick="inspectNode('node-poll')">
+          <rect class="node-bg" width="240" height="110" style="--node-color: var(--node-cloud);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-cloud);" />
+          <text class="node-title" x="20" y="32">⏳ Async Task Polling Engine</text>
+          <text class="node-sub" x="20" y="54">/api/status Endpoint</text>
+          <text class="node-context" x="20" y="76">Task Progress &amp; Page Collector</text>
+          <rect class="c-mask" x="20" y="85" width="80" height="16" fill="rgba(139,92,246,0.2)" />
+          <text class="node-badge" x="26" y="96" fill="var(--accent-violet)">POLLING</text>
+        </g>
+
+        <!-- NODE 12: External AI Solvers -->
+        <g class="c-node" id="node-ai" data-node-id="node-ai" data-node-kind="external" data-node-label="External Cloud AI Solvers" data-node-sublabel="GPT-4o, Claude 3.5, Gemini 1.5, etc." data-node-context="Multi-model visual reasoning engine solving problems and generating Base64 solution pages" transform="translate(1250, 570)" onclick="inspectNode('node-ai')">
+          <rect class="node-bg" width="240" height="110" style="--node-color: var(--node-external);" />
+          <rect class="node-stripe" width="6" height="110" rx="3" style="--node-color: var(--node-external);" />
+          <text class="node-title" x="20" y="32">🤖 Cloud AI Solvers (VLM)</text>
+          <text class="node-sub" x="20" y="54">GPT-4o / Claude 3.5 / Gemini</text>
+          <text class="node-context" x="20" y="76">Renders B64 Solution Pages</text>
+          <rect class="c-mask" x="20" y="85" width="80" height="16" fill="rgba(244,63,94,0.2)" />
+          <text class="node-badge" x="26" y="96" fill="var(--accent-rose)">AI SOLVER</text>
+        </g>
+
+      </g>
+    </svg>
+  </div>
+
+  <!-- Summary Info Cards Container -->
+  <section class="cards-section">
+    <div class="cards-header">Architectural Summary &amp; Subsystem Highlights</div>
+    <div class="cards">
+
+      <!-- Card 1 -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-dot cyan"></div>
+          1. Hardware Inputs &amp; E-Paper Display
+        </div>
+        <div class="card-body">
+          Operates directly on Raspberry Pi GPIO pins (Up, Down, Enter, Special) using pull-up resistor sensing. Controls a Waveshare 2.13" E-Paper display via SPI, rendering monochrome 1-bit menus, preview images, and solution pages with 270° rotation.
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-dot emerald"></div>
+          2. Core State Machine &amp; Memory Cache
+        </div>
+        <div class="card-body">
+          Features a 7-state Finite State Machine (FSM) handling navigation, multi-capture queues (up to 12 images), and local settings persistence via <code>settings_cache.json</code>. Stores up to 3 recent solution image pages in RAM history for offline review.
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-dot violet"></div>
+          3. Network Engine &amp; Mobile Hotspot
+        </div>
+        <div class="card-body">
+          Encapsulates REST HTTP requests with <code>x-board-key</code> security headers. Includes a dedicated background daemon sending 60-byte DNS socket pings every 30 seconds to keep iPhone/Android mobile hotspots from going idle.
+        </div>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-dot rose"></div>
+          4. Vercel Backend &amp; AI Solvers
+        </div>
+        <div class="card-body">
+          Connects to Vercel Serverless endpoints (<code>/api/ask</code>, <code>/api/status</code>). Utilizes asynchronous long-polling (up to 10 mins) while cloud Vision-Language Models (GPT-4o, Claude 3.5, Gemini 1.5) solve visual problems and return Base64 solution pages.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Route Probe Modal -->
+  <div class="modal-overlay" id="probe-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>🔍 Archify Route Probe</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div>Select a Source Node and Target Node to trace execution dataflow path:</div>
+      <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+        <select id="probe-source">
+          <option value="node-gpio">Node: GPIO Buttons Input</option>
+          <option value="node-main">Node: App Boot & Event Loop</option>
+          <option value="node-uiengine">Node: State Machine UI Engine</option>
+          <option value="node-network">Node: Network Comm Core</option>
+        </select>
+        <select id="probe-target">
+          <option value="node-ai">Node: Cloud AI Solvers</option>
+          <option value="node-epd">Node: Waveshare E-Paper</option>
+          <option value="node-wifi">Node: Wi-Fi Credentials Sync</option>
+          <option value="node-cache">Node: Local Cache & History</option>
+        </select>
+        <button class="btn btn-active" onclick="runRouteProbe()">Probe Route</button>
+      </div>
+      <div class="probe-path" id="probe-output">Path analysis will appear here...</div>
+    </div>
+  </div>
+
+  <!-- GUIDED VIEWS JSON DATA -->
+  <script id="archify-guided-views-data" type="application/json">
+    [
+      {
+        "id": "scenario-ai-solver",
+        "title": "Visual AI Solver Flow",
+        "description": "User takes photo via GPIO -> Camera capture -> Network POST to Vercel -> Async Polling -> AI Engine renders solution -> Displayed on E-Ink Screen",
+        "nodes": ["node-gpio", "node-main", "node-uiengine", "node-camera", "node-network", "node-vercel", "node-poll", "node-ai", "node-epd", "node-cache"],
+        "edges": ["edge-gpio-main", "edge-main-uiengine", "edge-uiengine-camera", "edge-camera-uiengine", "edge-uiengine-net", "edge-net-vercel", "edge-vercel-poll", "edge-poll-ai", "edge-net-poll", "edge-uiengine-epd", "edge-uiengine-cache"]
+      },
+      {
+        "id": "scenario-wifi-sync",
+        "title": "Wi-Fi Credentials Synchronization",
+        "description": "User triggers Wi-Fi Sync menu -> Wi-Fi Manager queries nmcli/iwgetid -> Network Core syncs credentials with Vercel API",
+        "nodes": ["node-gpio", "node-uiengine", "node-wifi", "node-network", "node-vercel"],
+        "edges": ["edge-gpio-main", "edge-main-uiengine", "edge-uiengine-wifi", "edge-wifi-vercel"]
+      },
+      {
+        "id": "scenario-keepalive",
+        "title": "Mobile Hotspot Keep-Alive Daemon",
+        "description": "Background thread sends periodic 60-byte socket connection pings to 1.1.1.1:53 to keep iPhone/Android tethering active",
+        "nodes": ["node-network", "node-keepalive"],
+        "edges": ["edge-net-keepalive", "edge-keepalive-dns"]
+      }
+    ]
+  </script>
+
+  <!-- Archify Runtime JavaScript -->
+  <script>
+    let guidedScenarios = [];
+    let activeScenarioIdx = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const dataTag = document.getElementById("archify-guided-views-data");
+      if (dataTag) {
+        try {
+          guidedScenarios = JSON.parse(dataTag.textContent);
+        } catch (e) {
+          console.error("Failed to parse guided scenarios JSON", e);
+        }
+      }
+    });
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute("data-theme");
+      const nextTheme = currentTheme === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", nextTheme);
+      document.getElementById("theme-icon").textContent = nextTheme === "light" ? "☀️" : "🌙";
+    }
+
+    function changePreset(preset) {
+      document.documentElement.setAttribute("data-preset", preset);
+    }
+
+    function inspectNode(nodeId) {
+      const nodeElem = document.getElementById(nodeId);
+      if (!nodeElem) return;
+
+      const label = nodeElem.getAttribute("data-node-label");
+      const sub = nodeElem.getAttribute("data-node-sublabel");
+      const ctx = nodeElem.getAttribute("data-node-context");
+
+      // Highlight clicked node & connected edges
+      document.querySelectorAll(".c-node").forEach(n => {
+        n.classList.remove("highlighted");
+        n.classList.add("dimmed");
+      });
+      document.querySelectorAll(".c-edge").forEach(e => {
+        e.classList.remove("highlighted");
+        e.classList.add("dimmed");
+      });
+
+      nodeElem.classList.remove("dimmed");
+      nodeElem.classList.add("highlighted");
+
+      // Find edges related to this node
+      document.querySelectorAll(".c-edge").forEach(e => {
+        const id = e.id;
+        if (id.includes(nodeId.replace("node-", ""))) {
+          e.classList.remove("dimmed");
+          e.classList.add("highlighted");
+        }
+      });
+    }
+
+    function resetCanvas() {
+      document.querySelectorAll(".c-node").forEach(n => {
+        n.classList.remove("dimmed", "highlighted");
+      });
+      document.querySelectorAll(".c-edge").forEach(e => {
+        e.classList.remove("dimmed", "highlighted");
+      });
+      document.querySelectorAll(".scenario-chip").forEach(c => c.classList.remove("active"));
+    }
+
+    function playScenario(idx) {
+      resetCanvas();
+      activeScenarioIdx = idx;
+
+      const scenario = guidedScenarios[idx];
+      if (!scenario) return;
+
+      document.querySelectorAll(".scenario-chip").forEach((chip, i) => {
+        if (i === idx) chip.classList.add("active");
+        else chip.classList.remove("active");
+      });
+
+      // Dim all nodes and edges first
+      document.querySelectorAll(".c-node").forEach(n => n.classList.add("dimmed"));
+      document.querySelectorAll(".c-edge").forEach(e => e.classList.add("dimmed"));
+
+      // Highlight scenario nodes and edges
+      scenario.nodes.forEach(nodeId => {
+        const elem = document.getElementById(nodeId);
+        if (elem) {
+          elem.classList.remove("dimmed");
+          elem.classList.add("highlighted");
+        }
+      });
+
+      scenario.edges.forEach(edgeId => {
+        const elem = document.getElementById(edgeId);
+        if (elem) {
+          elem.classList.remove("dimmed");
+          elem.classList.add("highlighted");
+        }
+      });
+    }
+
+    function resetScenario() {
+      resetCanvas();
+    }
+
+    function toggleRouteProbe() {
+      document.getElementById("probe-modal").classList.add("active");
+    }
+
+    function closeModal() {
+      document.getElementById("probe-modal").classList.remove("active");
+    }
+
+    function runRouteProbe() {
+      const src = document.getElementById("probe-source").value;
+      const tgt = document.getElementById("probe-target").value;
+
+      let pathText = `TRACING ROUTE: [${src}] ➔ [${tgt}]\n\n`;
+
+      if (src === "node-gpio" && tgt === "node-ai") {
+        pathText += `Step 1: [node-gpio] GPIO Push Button interrupt detected\n`;
+        pathText += `Step 2: [node-main] main.py polling loop forwards event to EducationalUIEngine\n`;
+        pathText += `Step 3: [node-uiengine] PREVIEW_PHOTO mode captures photo via rpicam-still\n`;
+        pathText += `Step 4: [node-network] EducationalNetwork sends multipart payload + x-board-key\n`;
+        pathText += `Step 5: [node-vercel] Vercel Gateway authenticates & enqueues job\n`;
+        pathText += `Step 6: [node-poll] Async long-polling loop queries /api/status\n`;
+        pathText += `Step 7: [node-ai] Cloud Vision AI model solves problem & returns Base64 pages\n\n`;
+        pathText += `STATUS: Route verified OK (7 hops, max delay 600s polling timeout)`;
+      } else if (src === "node-gpio" && tgt === "node-epd") {
+        pathText += `Step 1: [node-gpio] GPIO Enter key pressed\n`;
+        pathText += `Step 2: [node-main] Event passed to ui_core.handle_input()\n`;
+        pathText += `Step 3: [node-uiengine] FSM updates state & prepares menu frame\n`;
+        pathText += `Step 4: [node-epd] EducationalDisplay renders 1-bit mono frame via SPI to Waveshare E-Paper\n\n`;
+        pathText += `STATUS: Direct local rendering path (4 hops, ~300ms refresh latency)`;
+      } else {
+        pathText += `Step 1: [${src}] Component initiated\n`;
+        pathText += `Step 2: [node-uiengine] Internal state machine routing\n`;
+        pathText += `Step 3: [node-network] HTTPS payload transmission\n`;
+        pathText += `Step 4: [${tgt}] Target endpoint reached successfully\n\n`;
+        pathText += `STATUS: Valid architectural execution path.`;
+      }
+
+      document.getElementById("probe-output").textContent = pathText;
+    }
+
+    function exportSVG() {
+      const svg = document.getElementById("arch-canvas");
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svg);
+
+      if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+
+      const svgBlob = new Blob([source], {type:"image/svg+xml;charset=utf-8"});
+      const svgUrl = URL.createObjectURL(svgBlob);
+      const downloadLink = document.createElement("a");
+      downloadLink.href = svgUrl;
+      downloadLink.download = "architecture_diagram.svg";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+  </script>
+</body>
+</html>

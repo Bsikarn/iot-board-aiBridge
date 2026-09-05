@@ -63,6 +63,7 @@ ordinary/
 ├── main.py               # Main application entry point and GPIO button event loop
 ├── network_mod.py        # API communication, camera capture, Wi-Fi sync & keep-alive
 ├── ui_engine.py          # State machine UI engine, local cache, and history management
+├── architecture_diagram.html # Interactive Archify HTML architecture diagram
 └── settings_cache.json   # ⚠️ Auto-generated cache file for settings mappings
 ```
 
