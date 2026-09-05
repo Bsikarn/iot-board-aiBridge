@@ -1,4 +1,4 @@
-# 🧠 Embedded AI Hardware for Visual Problem Solving
+# Embedded AI Visual Problem Solver
 
 A personal project for Sikarn Pattarasirimongkol, a Full-stack Developer focusing on Data Engineering and Software Engineering. An embedded hardware application built on Raspberry Pi with an E-Ink display that captures visual problems via camera and solves them using cloud AI services. Web coding: https://github.com/Bsikarn/iot-web-aiBridge
 
@@ -11,7 +11,7 @@ A personal project for Sikarn Pattarasirimongkol, a Full-stack Developer focusin
 
 ### Hardware & Display
 - Raspberry Pi (GPIO Control)
-- Waveshare 2.13-inch E-Ink Display (epd2in13_V4)
+- Waveshare 2.13-inch E-Ink Display (`epd2in13_V4`)
 - Raspberry Pi Camera Module (`rpicam-still` / `libcamera-still`)
 
 ### Libraries & Tools
@@ -20,17 +20,17 @@ A personal project for Sikarn Pattarasirimongkol, a Full-stack Developer focusin
 - Requests (HTTP API Communication)
 - NetworkManager / nmcli / wpa_supplicant (Wi-Fi Management)
 
-### Cloud & Backend Integration
-- Vercel API Endpoints (`/api/ask`, `/api/settings`, `/api/wifi-settings`)
+### Backend & Services
+- Vercel API Endpoints (`/api/ask`, `/api/settings`, `/api/wifi-settings`, `/api/status`)
 
-## ⚡ Active Features
+## Active Features
 
-- **Visual Problem Capturing** — Captures images of handwritten or printed problem statements using Raspberry Pi camera tools.
-- **AI Solver Integration** — Sends captured images along with prompt slots, AI model selections, and knowledge base configurations to cloud API endpoints.
-- **E-Ink UI Engine** — Displays an interactive multi-screen menu system and multi-page solution images optimized for 2.13-inch E-Paper screens.
-- **Hardware Button Navigation** — Complete navigation and confirmation control using physical push buttons (Up, Down, Select).
-- **Wi-Fi Synchronization** — Two-way Wi-Fi credential sync and update between the hardware board and web backend.
-- **Local History & Caching** — Stores recent solution pages in memory and caches server setting mappings locally in `settings_cache.json`.
+- **Multi-Page Visual Problem Capture** — Captures up to 12 images per problem query using Raspberry Pi camera tools (`rpicam-still` / `libcamera-still`) with automatic rotation and thumbnail preview.
+- **AI Solver & Async Task Polling** — Submits captured problem images alongside prompt slots, AI model selections, and knowledge base configurations to cloud API endpoints with asynchronous long-polling status tracking.
+- **E-Ink UI Engine & State Machine** — Displays an interactive multi-screen menu system, live processing status progress, and multi-page solution images optimized for 2.13-inch E-Paper screens.
+- **Hardware Button Navigation** — Complete navigation and control using physical GPIO push buttons (Up, Down, Enter/Select, Special/Exit).
+- **Wi-Fi Synchronization & Hotspot Keep-Alive** — Two-way Wi-Fi credential sync between hardware board and web backend, with a background daemon sending heartbeats to keep mobile hotspots active.
+- **Local History & Settings Caching** — Retains recent solution pages in local memory and caches server slot/model label mappings in `settings_cache.json`.
 
 ## Hardware Pinout
 
@@ -53,22 +53,23 @@ A personal project for Sikarn Pattarasirimongkol, a Full-stack Developer focusin
 | **U** | Pin 29 | Up Navigation |
 | **E** | Pin 31 | Enter / Select |
 | **D** | Pin 32 | Down Navigation |
+| **S** | Pin 33 | Special / Exit / Reset Menu |
 
 ## Directory Structure
 
 ```text
 ordinary/
-├── display_epd.py        # E-Ink display rendering driver and layout builder
+├── display_epd.py        # E-Ink display driver, layout rendering, and image scaling
 ├── main.py               # Main application entry point and GPIO button event loop
-├── network_mod.py        # Network requests, camera capture, and Wi-Fi manager
-├── ui_engine.py          # State machine UI engine and local cache management
+├── network_mod.py        # API communication, camera capture, Wi-Fi sync & keep-alive
+├── ui_engine.py          # State machine UI engine, local cache, and history management
 └── settings_cache.json   # ⚠️ Auto-generated cache file for settings mappings
 ```
 
-## 🔐 Environment Variables
+## Environment Variables
 
 ```env
-# Hardcoded in network_mod.py (or configured via environment)
-BOARD_SECRET_KEY=
-VERCEL_API_URL=
+# Cloud API and Authentication Keys
+BOARD_SECRET_KEY=bseqaluvtksgifkrphab
+VERCEL_API_URL=https://aicalculate-iot.vercel.app/api/ask
 ```

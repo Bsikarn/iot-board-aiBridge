@@ -20,7 +20,7 @@ class EducationalDisplay:
             "/usr/share/fonts/truetype/noto/NotoSansThai-Regular.ttf",
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         ]
-        
+
         loaded_font = None
         for path in font_thai_paths:
             if os.path.exists(path):
@@ -28,9 +28,9 @@ class EducationalDisplay:
                 break
 
         if loaded_font:
-            self.font_large = ImageFont.truetype(loaded_font, 22)
-            self.font_medium = ImageFont.truetype(loaded_font, 15)
-            self.font_small = ImageFont.truetype(loaded_font, 12)
+            self.font_large = ImageFont.truetype(loaded_font, 20)
+            self.font_medium = ImageFont.truetype(loaded_font, 14)
+            self.font_small = ImageFont.truetype(loaded_font, 11)
         else:
             self.font_large = ImageFont.load_default()
             self.font_medium = ImageFont.load_default()
@@ -74,13 +74,12 @@ class EducationalDisplay:
             self.epd.display(buffer)
 
     def _draw_check_overlay(self, draw):
-        """Draw a checkmark overlay [✓] on the top-right corner upon confirmation."""
+        """วาดกล่องสีขาวพร้อมเครื่องหมายติ๊กถูก ([✓]) ชิดมุมขวาบนสุด"""
         draw.rectangle([224, 2, 248, 22], fill=(255, 255, 255), outline=0, width=2)
         draw.line([(228, 12), (234, 18)], fill=0, width=3)
         draw.line([(234, 18), (244, 6)], fill=0, width=3)
 
     def draw_ai_menu(self, menu_items, selected_idx, show_check=False):
-        """Render the main AI system menu."""
         image = Image.new('RGB', (self.width, self.height), (255, 255, 255))
         draw = ImageDraw.Draw(image)
         for idx, item in enumerate(menu_items):
@@ -126,7 +125,7 @@ class EducationalDisplay:
         draw.text((10, 86), f"Connected: {ssid}", font=self.font_medium, fill=0)
         self.render_and_display(image)
 
-    def draw_camera_preview(self, img_path, show_check=False):
+    def draw_camera_preview(self, img_path, show_check=False, step_num=1, total_steps=12):
         image = Image.new('RGB', (self.width, self.height), (255, 255, 255))
         draw = ImageDraw.Draw(image)
         if img_path and os.path.exists(img_path):
@@ -137,8 +136,20 @@ class EducationalDisplay:
                 draw.rectangle([9, 10, 111, 112], outline=0)
             except Exception:
                 draw.text((15, 50), "Image Loaded", font=self.font_medium, fill=0)
+
+        draw.text((130, 48), f"[{step_num}/{total_steps}]", font=self.font_large, fill=0)
+
         if show_check:
             self._draw_check_overlay(draw)
+        self.render_and_display(image)
+
+    def draw_progress_status(self, lines):
+        image = Image.new('RGB', (self.width, self.height), (255, 255, 255))
+        draw = ImageDraw.Draw(image)
+        y = 20
+        for line in lines:
+            draw.text((20, y), line, font=self.font_medium, fill=0)
+            y += 30
         self.render_and_display(image)
 
     def draw_image_page(self, page_img_or_path, page_num=1, total_pages=1):

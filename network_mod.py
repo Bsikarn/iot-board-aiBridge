@@ -3,59 +3,84 @@ import requests
 import subprocess
 import os
 import re
+import time
+import threading
+import socket
+from PIL import Image
 
-# Secret key for board authentication with Vercel API
-BOARD_SECRET_KEY = ""
+BOARD_SECRET_KEY = "bseqaluvtksgifkrphab"
 
 class EducationalNetwork:
-    def __init__(self, vercel_url=""):
+    def __init__(self, vercel_url):
         self.vercel_url = vercel_url
-        if vercel_url and "/api/ask" in vercel_url:
+        if "/api/ask" in vercel_url:
             self.settings_url = vercel_url.replace("/api/ask", "/api/settings")
             self.wifi_sync_url = vercel_url.replace("/api/ask", "/api/wifi-settings")
-        elif vercel_url:
+        else:
             base = vercel_url.rstrip("/")
             self.settings_url = f"{base}/api/settings"
             self.wifi_sync_url = f"{base}/api/wifi-settings"
-        else:
-            self.settings_url = ""
-            self.wifi_sync_url = ""
 
-        # Attach secret header to authorize requests
         self.headers = {
             "x-board-key": BOARD_SECRET_KEY
         }
 
-    def capture_image(self):
-        temp_path = "/dev/shm/edu_snap.jpg"
+        # Background Thread ส่ง Heartbeat เลี้ยง Hotspot iPhone ไม่ให้ตัด
+        self.start_keep_alive()
+
+    def start_keep_alive(self):
+        """ส่ง Ping ขนาดจิ๋ว (~60 Bytes) ทุก 30 วินาที เพื่อไม่ให้ Hotspot iPhone หลับ"""
+        def _heartbeat_worker():
+            while True:
+                try:
+                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    s.settimeout(3)
+                    s.connect(("1.1.1.1", 53))
+                    s.close()
+                except Exception:
+                    pass
+                time.sleep(30)
+
+        t = threading.Thread(target=_heartbeat_worker, daemon=True)
+        t.start()
+
+    def capture_image(self, step=1):
+        """ถ่ายภาพและหมุนภาพ 90 องศา (270° CCW) ให้ตั้งตรงอัตโนมัติก่อนบันทึก"""
+        temp_raw = f"/dev/shm/raw_snap_{step}.jpg"
+        temp_final = f"/dev/shm/edu_snap_{step}.jpg"
+        
+        captured = False
         try:
-            subprocess.run(["rpicam-still", "-n", "-o", temp_path, "--immediate", "--width", "800", "--height", "600"], check=True)
-            return temp_path
+            subprocess.run(["rpicam-still", "-n", "-o", temp_raw, "--immediate", "--width", "800", "--height", "600"], check=True)
+            captured = True
         except Exception:
             try:
-                subprocess.run(["libcamera-still", "-n", "-o", temp_path, "--immediate", "--width", "800", "--height", "600"], check=True)
-                return temp_path
+                subprocess.run(["libcamera-still", "-n", "-o", temp_raw, "--immediate", "--width", "800", "--height", "600"], check=True)
+                captured = True
             except Exception:
-                return None
+                captured = False
+
+        if captured and os.path.exists(temp_raw):
+            try:
+                img = Image.open(temp_raw)
+                rotated = img.rotate(270, expand=True)
+                rotated.save(temp_final, "JPEG", quality=85)
+                return temp_final
+            except Exception as e:
+                print(f"⚠️ Rotation error: {e}")
+                return temp_raw
+        return None
 
     def fetch_settings(self):
-        """Fetch all mappings from server with authorization headers."""
-        if not self.settings_url:
-            return None
         try:
             res = requests.get(self.settings_url, headers=self.headers, timeout=10)
             if res.status_code == 200:
-                data = res.json()
-                print(f"📡 [Settings Fetched Successfully]: {data}")
-                return data
-            else:
-                print(f"⚠️ fetch_settings HTTP Status: {res.status_code}")
+                return res.json()
         except Exception as e:
             print(f"⚠️ fetch_settings error: {e}")
         return None
 
     def get_current_wifi_ssid(self):
-        """Get the current connected Wi-Fi SSID."""
         try:
             result = subprocess.run(['iwgetid', '-r'], capture_output=True, text=True, check=True)
             ssid = result.stdout.strip()
@@ -72,7 +97,6 @@ class EducationalNetwork:
         return "Offline"
 
     def get_local_saved_wifis(self):
-        """Get all local saved Wi-Fi networks and passwords on the board."""
         saved_networks = []
         seen_ssids = set()
 
@@ -124,9 +148,6 @@ class EducationalNetwork:
         return saved_networks
 
     def sync_wifi_from_web(self):
-        """Sync Wi-Fi settings from Web to board."""
-        if not self.wifi_sync_url:
-            return False, "No Sync URL", 0
         current_ssid = self.get_current_wifi_ssid()
         try:
             res = requests.get(self.wifi_sync_url, headers=self.headers, timeout=10)
@@ -142,7 +163,6 @@ class EducationalNetwork:
                 
                 if current_ssid not in ["Offline", "No Wi-Fi", "Unknown"]:
                     if current_ssid not in web_ssids:
-                        print(f"🛑 [Safety Guard]: Active SSID '{current_ssid}' is missing from Web list!")
                         return False, "Active SSID Missing", len(wifi_list)
 
                 return True, "Sync Success", len(wifi_list)
@@ -153,9 +173,6 @@ class EducationalNetwork:
         return False, "Server Error", 0
 
     def update_wifi_to_web(self):
-        """Update: Push all local Wi-Fi profiles from board to Web."""
-        if not self.wifi_sync_url:
-            return False, 0
         local_wifis = self.get_local_saved_wifis()
         payload = {
             "networks": local_wifis,
@@ -163,18 +180,13 @@ class EducationalNetwork:
         }
         try:
             res = requests.post(self.wifi_sync_url, json=payload, headers=self.headers, timeout=10)
-            print(f"📡 Update Wi-Fi Response Status: {res.status_code}, Text: {res.text[:100]}")
             if res.status_code in [200, 201]:
                 return True, len(local_wifis)
-            elif res.status_code == 401:
-                print("🛑 401 Unauthorized: Invalid Secret Token Key")
         except Exception as e:
             print(f"⚠️ update_wifi_to_web error: {e}")
         return False, len(local_wifis)
 
-    def post_to_api(self, image_path, slot_idx, model_idx, kb_idx):
-        if not self.vercel_url:
-            return {"reply": "Error: VERCEL_URL is not set."}
+    def post_to_api(self, image_paths, slot_idx, model_idx, kb_idx, progress_callback=None):
         payload = {
             "prompt_index": str(slot_idx),
             "ai_index": str(model_idx),
@@ -182,17 +194,72 @@ class EducationalNetwork:
             "kb_index": str(kb_idx)
         }
         
-        try:
-            if not image_path or not os.path.exists(image_path):
-                return {"reply": "Error: Image missing."}
-            with open(image_path, 'rb') as img:
-                files = {'image': ('snap.jpg', img, 'image/jpeg')}
-                response = requests.post(self.vercel_url, data=payload, files=files, headers=self.headers, timeout=35)
+        if isinstance(image_paths, str):
+            image_paths = [image_paths]
 
-            try:
-                return response.json()
-            except Exception:
-                return {"reply": response.text}
+        opened_files = []
+        files = []
+        try:
+            for idx, p in enumerate(image_paths):
+                if p and os.path.exists(p):
+                    f = open(p, 'rb')
+                    opened_files.append(f)
+                    files.append((f'image_{idx + 1}', (f'snap_{idx + 1}.jpg', f, 'image/jpeg')))
+
+            if not files:
+                return {"reply": "Error: Images missing."}
+
+            response = requests.post(self.vercel_url, data=payload, files=files, headers=self.headers, timeout=30)
+            if response.status_code not in [200, 202]:
+                return {"reply": f"Server Error: {response.status_code}"}
+
+            if progress_callback:
+                progress_callback("sent")
+
+            res_data = response.json()
+            task_id = res_data.get("task_id")
+
+            if not task_id and "pages" in res_data:
+                return res_data
+
+            if not task_id:
+                return {"reply": "Error: No task_id returned from server."}
+
+            status_url = self.vercel_url.replace("/api/ask", "/api/status")
+            start_time = time.time()
+            max_wait_seconds = 600
+
+            print(f"⏳ [Task Started]: ID = {task_id}, Polling results...")
+
+            while (time.time() - start_time) < max_wait_seconds:
+                time.sleep(3)
+                try:
+                    poll_res = requests.get(f"{status_url}?task_id={task_id}", headers=self.headers, timeout=10)
+                    if poll_res.status_code == 200:
+                        poll_data = poll_res.json()
+                        status = poll_data.get("status")
+                        step = poll_data.get("step")
+
+                        if progress_callback and step:
+                            progress_callback(step)
+
+                        if status == "completed":
+                            print("✅ [Task Completed]: Received AI response pages!")
+                            return poll_data
+                        elif status == "failed":
+                            return {"reply": f"AI Failed: {poll_data.get('error', 'Unknown error')}"}
+                        else:
+                            print(f"🔄 [Processing...]: Step = {step}, Elapsed {int(time.time() - start_time)}s")
+                except Exception as poll_err:
+                    print(f"⚠️ Polling tick error: {poll_err}")
+
+            return {"reply": "Timeout: AI took more than 10 minutes to finish."}
 
         except Exception as e:
             return {"reply": f"Connect Error: {e}"}
+        finally:
+            for f in opened_files:
+                try:
+                    f.close()
+                except Exception:
+                    pass

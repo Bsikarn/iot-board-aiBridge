@@ -6,10 +6,10 @@ from display_epd import EducationalDisplay
 from network_mod import EducationalNetwork
 from ui_engine import EducationalUIEngine
 
-# Define 3 main button pins: U (Up), E (Select/Enter), D (Down)
 PIN_U = 29
 PIN_E = 31
 PIN_D = 32
+PIN_S = 33
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
@@ -17,7 +17,8 @@ GPIO.setwarnings(False)
 BUTTON_PINS = {
     PIN_U: 'u',
     PIN_E: 'e',
-    PIN_D: 'd'
+    PIN_D: 'd',
+    PIN_S: 's'
 }
 
 for pin in BUTTON_PINS.keys():
@@ -31,7 +32,7 @@ def fetch_active_button():
 
 def main():
     print("--------------------------------------------------")
-    print("🚀 [System Boot] Starting Embedded AI Visual Problem Solver...")
+    print("🚀 [System Boot] Starting Educational AI Terminal...")
     print("--------------------------------------------------")
 
     try:
@@ -42,9 +43,8 @@ def main():
         print(f"🚨 [Hardware Error] Display Init Failed: {e}")
         display_unit = None
 
-    network_unit = EducationalNetwork(vercel_url="")
+    network_unit = EducationalNetwork(vercel_url="https://aicalculate-iot.vercel.app/api/ask")
 
-    # Enter the main AI menu screen immediately
     if display_unit:
         ui_core = EducationalUIEngine(display_unit, network_unit)
         ui_core.draw_active_screen()
@@ -59,16 +59,16 @@ def main():
             if btn and ui_core:
                 if btn != last_button_state:
                     last_button_state = btn
-                    print(f"🔘 [Button Input]: {btn.upper()}")
+                    print(f"🔘 [Button]: {btn.upper()}")
                     ui_core.handle_input(btn)
                     time.sleep(0.01)
             else:
                 last_button_state = None
 
-            time.sleep(0.002)
+            time.sleep(0.005)
 
     except KeyboardInterrupt:
-        print("\n👋 [System Shutdown] Exiting program...")
+        print("\n👋 [Keyboard Interrupt] Exiting program...")
     finally:
         try:
             GPIO.cleanup()
