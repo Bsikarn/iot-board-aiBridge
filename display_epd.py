@@ -74,7 +74,6 @@ class EducationalDisplay:
             self.epd.display(buffer)
 
     def _draw_check_overlay(self, draw):
-        """วาดกล่องสีขาวพร้อมเครื่องหมายติ๊กถูก ([✓]) ชิดมุมขวาบนสุด"""
         draw.rectangle([224, 2, 248, 22], fill=(255, 255, 255), outline=0, width=2)
         draw.line([(228, 12), (234, 18)], fill=0, width=3)
         draw.line([(234, 18), (244, 6)], fill=0, width=3)
