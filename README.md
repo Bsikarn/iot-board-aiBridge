@@ -71,6 +71,6 @@ ordinary/
 
 ```env
 # Cloud API and Authentication Keys
-BOARD_SECRET_KEY=bseqaluvtksgifkrphab
+BOARD_SECRET_KEY=
 VERCEL_API_URL=https://aicalculate-iot.vercel.app/api/ask
 ```
