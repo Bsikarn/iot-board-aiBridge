@@ -8,7 +8,7 @@ import threading
 import socket
 from PIL import Image
 
-BOARD_SECRET_KEY = "bseqaluvtksgifkrphab"
+BOARD_SECRET_KEY = ""
 
 class EducationalNetwork:
     def __init__(self, vercel_url):
@@ -25,11 +25,9 @@ class EducationalNetwork:
             "x-board-key": BOARD_SECRET_KEY
         }
 
-        # Background Thread ส่ง Heartbeat เลี้ยง Hotspot iPhone ไม่ให้ตัด
         self.start_keep_alive()
 
     def start_keep_alive(self):
-        """ส่ง Ping ขนาดจิ๋ว (~60 Bytes) ทุก 30 วินาที เพื่อไม่ให้ Hotspot iPhone หลับ"""
         def _heartbeat_worker():
             while True:
                 try:
@@ -45,7 +43,6 @@ class EducationalNetwork:
         t.start()
 
     def capture_image(self, step=1):
-        """ถ่ายภาพและหมุนภาพ 90 องศา (270° CCW) ให้ตั้งตรงอัตโนมัติก่อนบันทึก"""
         temp_raw = f"/dev/shm/raw_snap_{step}.jpg"
         temp_final = f"/dev/shm/edu_snap_{step}.jpg"
         
