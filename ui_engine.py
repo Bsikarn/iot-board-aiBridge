@@ -92,7 +92,6 @@ class EducationalUIEngine:
             print(f"⚠️ save_local_cache error: {e}")
 
     def refresh_settings(self):
-        """ดึง Custom Name สล็อตและชื่อโมเดลจากฝั่งเว็บมาเก็บลงเครื่องโดยตรง"""
         if self.net:
             settings_data = self.net.fetch_settings()
             if settings_data and isinstance(settings_data, dict):
@@ -160,7 +159,6 @@ class EducationalUIEngine:
             self.local_history.pop()
 
     def _execute_api_dispatch(self, images_to_send):
-        """ส่งภาพทั้งหมดขึ้นเซิร์ฟเวอร์ พร้อมพ่นสถานะความคืบหน้าทีละบรรทัดบนจอ"""
         progress_lines = ["> Sent!"]
         if self.display:
             self.display.draw_progress_status(progress_lines)
@@ -278,14 +276,14 @@ class EducationalUIEngine:
     def handle_input(self, btn):
         btn = btn.lower()
 
-        # 0. หน้าแสดงผลลัพธ์ Wi-Fi Sync/Update
+        # 0. Wi-Fi Sync/Update
         if self.current_state == self.WIFI_RESULT_SCREEN:
             if btn in ['e', 's']:
                 self.current_state = self.AI_MENU
                 self.draw_active_screen()
             return
 
-        # 1. หน้าเลือกคำสั่ง Wi-Fi Option
+        # 1. Wi-Fi Option
         elif self.current_state == self.WIFI_OPTION_SCREEN:
             if btn == 'u':
                 self.wifi_option_idx = (self.wifi_option_idx - 1) % 2
@@ -348,7 +346,7 @@ class EducationalUIEngine:
             self.draw_active_screen()
             return
 
-        # 2. โหมดเอไอหลัก (AI_MENU)
+        # 2. AI_MENU
         elif self.current_state == self.AI_MENU:
             if btn == 's':
                 self.menu_index = 0
@@ -402,7 +400,7 @@ class EducationalUIEngine:
             self.draw_active_screen()
             return
 
-        # 3. โหมดพรีวิวรูปถ่าย (PREVIEW_PHOTO)
+        # 3. PREVIEW_PHOTO
         elif self.current_state == self.PREVIEW_PHOTO:
             if self.display:
                 self.display.draw_camera_preview(
@@ -412,7 +410,6 @@ class EducationalUIEngine:
                     total_steps=self.MAX_PHOTOS
                 )
 
-            # --- กรณีภาพที่ 1 ---
             if self.current_snap_step == 1:
                 if btn == 'e':
                     self.captured_images.append(self.pending_photo_path)
@@ -430,7 +427,6 @@ class EducationalUIEngine:
                     self.current_snap_step = 1
                     self.current_state = self.AI_MENU
 
-            # --- กรณีภาพที่ 2 ถึง 11 ---
             elif 2 <= self.current_snap_step < self.MAX_PHOTOS:
                 if btn == 'e':
                     self.captured_images.append(self.pending_photo_path)
@@ -452,7 +448,6 @@ class EducationalUIEngine:
                     self.current_snap_step = 1
                     self.current_state = self.AI_MENU
 
-            # --- กรณีภาพที่ 12 สุดท้าย ---
             elif self.current_snap_step == self.MAX_PHOTOS:
                 if btn in ['e', 'u']:
                     self.captured_images.append(self.pending_photo_path)
@@ -471,7 +466,7 @@ class EducationalUIEngine:
             self.draw_active_screen()
             return
 
-        # 4. โหมดดูคำตอบปัจจุบัน (SHOWING_RESULT)
+        # 4. SHOWING_RESULT
         elif self.current_state == self.SHOWING_RESULT:
             total_pages = len(self.current_answer_pages)
             if btn == 'u':
@@ -485,7 +480,7 @@ class EducationalUIEngine:
             self.draw_active_screen()
             return
 
-        # 5. โหมดเลือกประวัติ (HISTORY_MENU)
+        # 5. HISTORY_MENU
         elif self.current_state == self.HISTORY_MENU:
             total_hist = len(self.local_history)
             if btn == 's':
@@ -503,7 +498,7 @@ class EducationalUIEngine:
             self.draw_active_screen()
             return
 
-        # 6. โหมดดูภาพคำตอบประวัติ (SHOWING_HISTORY_RESULT)
+        # 6. SHOWING_HISTORY_RESULT
         elif self.current_state == self.SHOWING_HISTORY_RESULT:
             current_entry = self.local_history[self.history_selected_idx]
             total_pages = len(current_entry["pages"])
