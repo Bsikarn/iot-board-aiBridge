@@ -1,6 +1,6 @@
 # Embedded AI Visual Problem Solver
 
-A personal project for Sikarn Pattarasirimongkol, a Full-stack Developer focusing on Data Engineering and Software Engineering. An embedded hardware application built on Raspberry Pi with an E-Ink display that captures visual problems via camera and solves them using cloud AI services. Web coding: https://github.com/Bsikarn/iot-web-aiBridge
+An embedded hardware application built on Raspberry Pi with an E-Ink display that captures visual problems via camera and solves them using cloud AI services. Web coding: https://github.com/Bsikarn/iot-web-aiBridge
 
 ---
 
